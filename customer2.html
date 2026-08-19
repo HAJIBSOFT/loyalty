@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>حاجب سوفت | بوابة العميل مع فاحص الأخطاء</title>
+    <!-- استدعاء Tailwind CSS للتصميم العصري -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- استدعاء مكتبة Supabase الرسمية -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap');
+        body { font-family: 'Cairo', sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen flex flex-col items-center justify-center p-4">
+
+    <!-- كارت التسجيل للعميل -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 w-full max-w-md">
+        <div class="text-center mb-6">
+            <div class="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-xl mx-auto mb-3">ح</div>
+            <h1 class="text-xl font-bold text-gray-900">HAJIB SOFT | حاجب سوفت</h1>
+            <p class="text-gray-500 text-sm mt-1">أدخل اسمك ورقم جوالك لتجربة فحص وتوليد البطاقة السحابية</p>
+        </div>
+        
+        <form id="register-form" onsubmit="registerUser(event)" class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">الاسم الكامل</label>
+                <input type="text" id="cust-name" required placeholder="مثال: أحمد محمد" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition text-right">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">رقم الجوال</label>
+                <input type="tel" id="cust-phone" required placeholder="مثال: 0512345678" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition text-left" dir="ltr">
+            </div>
+            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow-lg transition">
+                إصدار بطاقة الولاء السحابية
+            </button>
+        </form>
+
+        <!-- قسم تحميل البطاقة بعد التسجيل بنجاح -->
+        <div id="download-section" class="hidden mt-8 text-center space-y-6 border-t pt-6 border-gray-100">
+            <div class="inline-flex p-3 bg-green-50 rounded-full text-green-600">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            </div>
+            <h3 class="text-xl font-bold text-gray-900">تم إنشاء بطاقتك بنجاح!</h3>
+            <p class="text-sm text-gray-500">اضغط على الزر أدناه لإضافتها وحفظها على هاتفك</p>
+            <a id="wallet-download-link" href="#" target="_blank" class="inline-flex w-full items-center justify-center bg-black hover:bg-gray-900 text-white font-semibold py-3 px-6 rounded-xl gap-3 transition shadow-md">
+                <span>إضافة إلى محفظة الهاتف 📱</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- صندوق تتبع الأخطاء الذكي (يظهر بالأسفل مباشرة لمعرفة سبب المشكلة) -->
+    <div class="w-full max-w-md mt-6 bg-slate-900 text-green-400 p-4 rounded-xl font-mono text-xs space-y-2 shadow-inner border border-slate-800">
+        <h4 class="text-slate-400 font-bold border-b border-slate-800 pb-2 mb-2 text-center text-sm">شاشة تتبع العمليات وفحص الأخطاء</h4>
+        <div id="debug-log" class="max-h-40 overflow-y-auto space-y-1">
+            <div class="text-slate-500">* النظام جاهز بانتظار إدخال البيانات والضغط على زر التسجيل...</div>
+        </div>
+    </div>
+
+    <script>
+        // إعدادات الاتصال المباشرة بقاعدة بيانات Supabase و WalletWallet الخاصة بك [1]
+        const SUPABASE_URL = "https://bigisnpdoqxmpjwpbncv.supabase.co"; 
+        const SUPABASE_ANON_KEY = "sb_publishable_6ZtAL8lRYdreWg4Xhn6zLA_7-PwGvPJ"; 
+        const WALLET_API_KEY = "ww_live_d725637056c71ad72de934242e861523";
+
+        // دالة لكتابة السجلات داخل الصندوق الأسود بشكل فوري لتسهيل الفحص
+        function addLog(message, isError = false) {
+            const logContainer = document.getElementById('debug-log');
+            const colorClass = isError ? 'text-red-400 font-semibold' : 'text-green-400';
+            logContainer.innerHTML += `<div class="${colorClass}">[${new Date().toLocaleTimeString()}] ${message}</div>`;
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        // تهيئة اتصال Supabase
+        let supabaseClient;
+        try {
+            supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            addLog("تم تهيئة اتصال Supabase بنجاح.");
+        } catch (e) {
+            addLog("فشل تهيئة اتصال Supabase: " + e.message, true);
+        }
+
+        // روابط صور الخلفية واللوجو والأيقونات بالـ base64
+        const LOGO_BASE64 = `data:image/png;base64,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`;
+        
+        const ICON_BASE64 = `data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAHgAAAB4CAMAAAAOusbgAAAAAXNSR0IB2cksfwAAAR1QTFRFAAAAPjRwRi50PDNvPjJwPDJvNzdtPTNvPTNvgACAPTNuOzRwPDFtPTNwPTJvPTRwPTNvPjNuPTNwPTNvPTNvPTNvPjNvPTRvPjRwQCpqQECAPTJvPTNwPzFwPTNtPDVxPTNvPTNvPTNvPTNvPjNtPTJwPTRxPTNvOzRvPTNvPDJuPTJuNjZrPTNvPDNvMzNmOjFrOi50QjFzPDNuPDJvPTNuPTNvPTNvPTJvQC5tPTNvPTRvPTNwPTNuPTNvPjRvPDJuPTNvPDFyPTNvKiqAPzJxPjJwQDdtPjJxPjNxPjVyPTRuPTNwPTNwPDNvPTNvPTNvPDRvPjFvPTNuPTRuPTNvPDNvPzVvPjRtPjNvPTNuQDNzPTJvPTJvPDRwmqZIpAAAAF90Uk5TAJkLdym2Dv/9AvBJL1BlO7R0gsTj9LqesgwELks5SyL18drIRsBPfif2SLsT7IwKHxYfb0yr5fpcHNi3jYbtZ2HRL/wGPWscVi0ddougnOuvyz73T9aHNTHPpChHsV0OY7NUAAACZElEQVR4nO2ZaVvUMBCAAwJRBATkkFtAPEFQbuQUARU8ODwB///PICmbbppOkuk2WR513i9pJzPzNpt098MyRhAEQRAEQRAEQRBEKBoar8dbTcnQLKiHtoVzflteiJHrIxq4wNuFV+r4fyO+IzJa9fp6iRm7WxnbXH1iiFF9Soh5lnYzQ4wdaZ9q3r3QYj3uEnPeGVrMkWLMe+ESd+l0VxuCYpV3H2EueLh6nGKjb69XnP88rY+LFXuPeTSxjPSVEJvBQmLXkpPpfhNV8yD3NHjxAEIMReUwmP8Y8GLP159TLCeH4G5+8XA5sWUm0B7HEo/chNizYP8e1yYelfdjNYsfmqeac5fYYNzl9XxXlxFPOL2+H4naxW4tY5MCMKouH01NGmTE4v6x6pPyZMCnrR3Emv4tMWYXQ/sUT29I/EzeP3+RPXL6qYwknmZsBnh9iuzAS+u76mQWrMCL5yAtovoVXIEWv4a9/mpLFlqc1M8v5MDULcJxlHepyGEwxZY4tn4Z47imJY0NAYJCO+Z/wPhjlUq0M4B41aVds7R6I6/WsxNFxa4lbyTVm1vbkh2tFyROksTFtoa181uRuGsXy4bvjPs9m1hlOBZitMqxr03m01OxpR9ODJv5gZp7DzcOILaYP4iZj0CXypJDiBlrPDzS+aS2bALo0hNSDJbvwkf+c1zxl6T+a+yP2loPi4/rIjbanAQ81ZZyWX8qhjNoIpb4myj/rjxao530trQYfomrunz8R2SxLeEniyuuZvwC46XFzQC/z42ki8sk/kcLddv+7KnTn0AEQRAEQRAEQRAE8bdyBTFZV9j33R0SAAAAAElFTkSuQmCC`;
+        
+        const STRIP_BASE64 = `data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABDgAAAFoCAMAAACFeLvtAAAAAXNSR0IB2cksfwAAAwBQTFRFAAAA/////sIW2HUlS3eeQm+WTHmgUH2kSXWcPmqRTnuiPGiPWoiu77Y3SHKYRHGZRnSbJk90UYCmWIWrQG2UU4KoKVJ3VoSqLVZ7NF6EMFqA0+TtOmaNIktw87k47LM2OWOKNmGIRW6V0OHqyNvly93nQ2ySPmeOQWqQHEVqHkhtXYqwQWiN9bs4GUNnAwcUAh872rK5DzhaAiNA3brAFkBkCDBRV4GoCzRWEjxgO2WMAgQO3erzBSxN2Ofy4Le8VX6lAyhH2Kiv0Kqx377EyqKn4O311KKoyKyxw9fi5PD4tszb5sjNq8PU5MDGRm2SDAoHPGWK/Pv5BQsb2K60ZI6xFgsXvdPgwZqfEggNwpGWFRIRBSdFqYiMwKKmEQkV49ze1LW7orrOg6C6zJuhdpi2362yk63EBSI/v3l/iafBx1cJ9/PwfTxAhkZK0bu/P2SImrTKs6qwcTM58vn8t5aav6mt+O7j/cIXybS63dTW1pyi18XJyIWLt25ydYObBxIo6NHUr5CV6r9hHhoX3IQ8/cQi8uHJrGZs79acEBov67ZAFjxdvIWKFyQ61s7QXH+h1ZSbu1EJo19l0WEJ6NGt6MqG2Hst5+zw0I6UVHmcZ3aOIy9FT0dGsHR5IxEQKjZORVJrPUpjNEBYIB0i6+Tl2G8M6rhMsEMHMCYjrqGmvUgHTltyaigs8uLbZIWmHzBOHClBPzEu58J1bY2slVFVpD8Iz2cNyMLF785779e6h5OoQTs658ukWycuYGuAqpme9NvUd5OwNBITurvE6b7BvLO67MnKo7HEi1JWJSUs5sGYkDgHxGkS+spD5qx8l0kPrFYNVz8W459lnDMGgDgI87oadysF35NVyZss4qc378lummxv31YI89OInJaVi5mwZWBg3XoSXFVT3ZdE67xVc1khk3Ei+M5YhoyZPCwTVxkemVlfh4N/z4+OuX4g8HEOm6K24oYbWh8G8+CsfHdzRBki6LmNUWWA6pYhX2V0qmkd3KoeeWpnuIUtpF9fhkLXXAAAAQB0Uk5TAP///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////wqX9DwAAkbySURBVHicxL1tbFvnlS0c3xyRx4xDkZRJ0ZqXicw6lMi6tEGBjNhEF9afQe2gUC2jCAajiwoJggiFgFEEInpvEMAGpr5CXUHpH48Ny0ItKUbRQEitNj/8+gOKe4OMEQPXQP3H7QCvbTjTeT2AMTAwgQ0POniftfZ+nnOoD38l7hyRh4eHnzbwLK699tp7P7PzgdvIQ07y8MAD32BkxYtGRmQ3srNnZ09Pj+x5gG0It/39Pf1D/eZ2aMjc9Pf39w319ZnDvr7+vv6a2fX11XiLo76+3r4azuBSq/Wai9kqvGIvt/VKpd5b761WKuZaL5trvVqvlqvlMm7KxWKxXiyZO8WiOc6ZfbVcyhWr5WKpmCuZ0+VyqcQnmceqeHq5al5WTlbNK0p6r5rDcamEcznzMnOcy506++r8vh0fLt/af3HxTuPV48cXj08vHdqxY8cr3P7lO9/5zgvutcnowf/+s//3/05OTAxu+Ittg//w4osv4ku8+OI/rPOx4+c+HXUPDc+ONz/61Z9vj698xRNsH/8S30L+T8x/zg/k/+mVfV8cmr/XcW9L59YtY51bOjs7tnZ2bu/sHNvb2dVprnv37u3qNn9dnd2FQnd3vrsrXyh0dXfHC/l8vBA3l4LZ65bH1c/HY5458nknbg7zfEZXPN9VKBTy3fl8vtts+YK5mKO93V17uwsD27dvH8MOm9wOjG0fM9/EHG3FkXnc7MxduYPndPJ5nTiPh839gTH3BrjuNR9hPnSv+Q7d8e6C+Tx8dt78E8yHm3+QuZfnvwH/im7zfTc/t3Hj5kRrS8tzLS2tG1s2Jlo2tui2uWXj5o2bN29ubYmb/ebnzDOfM88y79qN9zH/Sd04KAwcO3bs5z//9Sef/O531998880fv/32OxcvXnzj+9///mvcXn/99W3btn3rJbdte2kbN7l5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وقد قمنا بوضعها كاملة بداخل الكود لتسهيل العمل*
+
+        async function registerUser(event) {
+            event.preventDefault();
+            const name = document.getElementById('cust-name').value;
+            const phone = document.getElementById('cust-phone').value;
+
+            addLog("بدء عملية التسجيل للعميل: " + name);
+
+            try {
+                // 1. التحقق من وجود العميل مسبقاً بقاعدة البيانات
+                addLog("الخطوة 1: جاري التحقق من وجود رقم الهاتف في قاعدة البيانات...");
+                const { data: existingUser, error: checkError } = await supabaseClient
+                    .from('loyalty_members')
+                    .select('*')
+                    .eq('phone_number', phone)
+                    .maybeSingle();
+
+                if (checkError) {
+                    throw new Error("خطأ أثناء التحقق من قاعدة البيانات: " + checkError.message);
+                }
+
+                if (existingUser) {
+                    addLog("العميل مسجل مسبقاً بالفعل في النظام.");
+                    document.getElementById('wallet-download-link').href = existingUser.share_url;
+                    document.getElementById('download-section').classList.remove('hidden');
+                    addLog("تم إظهار رابط تحميل بطاقة العميل الحالية بنجاح.");
+                    alert("أنت مسجل مسبقاً معنا! تفضل بتحميل بطاقتك الحالية.");
+                    return;
+                }
+
+                addLog("الرقم جديد وغير مسجل مسبقاً. جاري المتابعة...");
+
+                // 2. إرسال طلب لـ WalletWallet API
+                addLog("الخطوة 2: جاري إرسال طلب إنشاء البطاقة السحابية إلى WalletWallet...");
+                const passPayload = {
+                    barcodeValue: phone,
+                    barcodeFormat: "QR",
+                    logoText: "HAJIB SOFT | حاجب سوفت ",
+                    colorPreset: "blue",
+                    color: "#6988ec",
+                    logoURL: LOGO_BASE64, 
+                    iconURL: ICON_BASE64,
+                    stripURL: STRIP_BASE64,
+                    primaryFields: [
+                        { label: "العميل | customer", value: name }
+                    ],
+                    secondaryFields: [
+                        { label: "عدد النقاط", value: "0" },
+                        { label: "حالة الهدية", value: "اجمع النقاط للحصول على مكافأتك" }
+                    ],
+                    backFields: [
+                        { label: "جميع الحقوق محفوظة لمنصة حاجب سوفت", value: "hajib soft 2026" },
+                        { label: "Notifications", value: "أهلاً بك في برنامج الولاء", changeMessage: "%@" }
+                    ]
+                };
+
+                const walletResponse = await fetch("https://api.walletwallet.dev/api/passes", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${WALLET_API_KEY}`
+                    },
+                    body: JSON.stringify(passPayload)
+                });
+
+                if (!walletResponse.ok) {
+                    const errorText = await walletResponse.text();
+                    throw new Error(`خطأ من خادم البطاقات: ${errorText}`);
+                }
+
+                const walletData = await walletResponse.json();
+                addLog("تم استقبال بيانات البطاقة بنجاح من WalletWallet. الرقم التسلسلي: " + walletData.serialNumber);
+
+                // 3. إدراج بيانات العميل الجديد في الـ Supabase
+                addLog("الخطوة 3: جاري حفظ بيانات العميل والبطاقة في قاعدة البيانات (Supabase)...");
+                const { data: newMember, error: insertError } = await supabaseClient
+                    .from('loyalty_members')
+                    .insert({
+                        phone_number: phone,
+                        name: name,
+                        points: 0,
+                        serial_number: walletData.serialNumber,
+                        share_url: walletData.shareUrl
+                    })
+                    .select()
+                    .single();
+
+                if (insertError) {
+                    throw new Error("فشل إدخال البيانات في Supabase: " + insertError.message);
+                }
+
+                addLog("تم حفظ بيانات العميل في قاعدة البيانات بنجاح!");
+
+                // 4. إظهار رابط تحميل كارت المحفظة للعميل
+                document.getElementById('wallet-download-link').href = newMember.share_url;
+                document.getElementById('download-section').classList.remove('hidden');
+                addLog("تم إظهار زر تحميل البطاقة السحابية للمستخدم.");
+                alert("تم إنشاء حسابك وتجهيز البطاقة بنجاح!");
+
+            } catch (err) {
+                addLog("حدث خطأ أثناء العملية: " + err.message, true);
+                alert("خطأ: " + err.message);
+            }
+        }
+    </script>
+</body>
+</html>
