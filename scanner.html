@@ -4,75 +4,83 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>حاجب سوفت | بوابة الموظف ومسح البطاقات</title>
-    <!-- استدعاء Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- مكتبة قارئ الكاميرا -->
     <script src="https://unpkg.com/html5-qrcode"></script>
-    <!-- استدعاء مكتبة Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap');
         body { font-family: 'Cairo', sans-serif; }
     </style>
 </head>
-<body class="bg-gray-50 min-h-screen flex items-center justify-center p-4">
+<body class="bg-slate-50 min-h-screen flex items-center justify-center p-4">
 
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 w-full max-w-xl">
-        <h2 class="text-2xl font-bold text-center text-gray-900 mb-6">مسح بطاقة العميل وإضافة النقاط</h2>
+    <div class="bg-white rounded-3xl shadow-xl shadow-slate-100 border border-slate-100 p-8 w-full max-w-xl">
+        <h2 class="text-2xl font-bold text-center text-slate-900 mb-6">مسح بطاقة العميل وإضافة النقاط</h2>
         
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            <!-- البحث اليدوي برقم الجوال -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
             <div class="space-y-3">
-                <h3 class="text-sm font-bold text-gray-700">البحث اليدوي برقم الجوال</h3>
+                <h3 class="text-sm font-semibold text-slate-500">البحث اليدوي برقم الجوال</h3>
                 <div class="flex gap-2">
-                    <input type="tel" id="search-phone-input" placeholder="مثال: 0512345678" class="flex-1 px-4 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition text-sm">
-                    <button onclick="searchMemberByPhone()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl font-semibold text-sm transition">بحث</button>
+                    <input type="tel" id="search-phone-input" placeholder="05xxxxxxxx" class="flex-1 px-4 py-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-4 focus:ring-indigo-100 focus:border-indigo-600 transition text-sm">
+                    <button onclick="searchMemberByPhone()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-3 rounded-2xl font-semibold text-sm transition shadow-md">بحث</button>
                 </div>
             </div>
             
-            <!-- قارئ الكاميرا التلقائي -->
             <div class="space-y-3 flex flex-col justify-end">
-                <h3 class="text-sm font-bold text-gray-700">المسح التلقائي (كاميرا الـ QR)</h3>
-                <button onclick="startQRScanner()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-3 rounded-xl font-semibold text-sm transition">
-                    فتح كاميرا الـ QR 📷
+                <h3 class="text-sm font-semibold text-slate-500">المسح التلقائي</h3>
+                <button onclick="startQRScanner()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-3 rounded-2xl font-semibold text-sm transition flex items-center justify-center gap-2 shadow-md">
+                    <span>فتح الكاميرا لقراءة الكود 📷</span>
                 </button>
             </div>
         </div>
 
-        <!-- حاوية كاميرا القارئ للباركود -->
-        <div id="qr-reader-container" class="hidden border rounded-xl overflow-hidden mb-6 bg-black relative max-w-sm mx-auto">
+        <div id="qr-reader-container" class="hidden border rounded-3xl overflow-hidden mb-6 bg-black relative max-w-sm mx-auto">
             <div id="qr-reader" class="w-full"></div>
-            <button onclick="stopQRScanner()" class="absolute top-2 right-2 bg-red-600 text-white text-xs px-2 py-1 rounded">إغلاق الكاميرا</button>
+            <button onclick="stopQRScanner()" class="absolute top-4 right-4 bg-red-600 text-white text-xs px-3 py-1.5 rounded-full">إغلاق الكاميرا</button>
         </div>
 
-        <!-- عرض معلومات العميل وإدخال النقاط الجديدة -->
-        <div id="member-info-panel" class="hidden bg-gray-50 border border-gray-200/50 rounded-xl p-6 mt-6 space-y-4">
-            <div class="flex justify-between items-center border-b pb-3">
+        <!-- عرض معلومات العميل وحالة استحقاقه للمكافأة -->
+        <div id="member-info-panel" class="hidden bg-slate-50 border border-slate-200/50 rounded-2xl p-6 mt-6 space-y-6">
+            <div class="flex justify-between items-center border-b pb-4">
                 <div>
-                    <p class="text-xs text-gray-400">اسم العميل المسجل</p>
-                    <h4 id="panel-member-name" class="text-lg font-bold text-gray-900">-</h4>
+                    <p class="text-xs text-slate-400">اسم العميل المسجل</p>
+                    <h4 id="panel-member-name" class="text-lg font-bold text-slate-900">-</h4>
                 </div>
                 <div class="text-left">
-                    <p class="text-xs text-gray-400">النقاط الحالية</p>
-                    <span id="panel-member-points" class="inline-block bg-blue-100 text-blue-800 text-lg font-bold px-3 py-1 rounded-lg">0</span>
+                    <p class="text-xs text-slate-400">النقاط الحالية</p>
+                    <span id="panel-member-points" class="inline-block bg-indigo-100 text-indigo-800 text-lg font-bold px-4 py-1.5 rounded-xl">0</span>
                 </div>
             </div>
             
-            <!-- حقول مخفية مؤقتاً لتخزين معلومات العميل المختار -->
+            <!-- تنبيه استحقاق المكافأة الذهبي -->
+            <div id="reward-badge" class="hidden bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-center gap-3 text-amber-800">
+                <span class="text-3xl">🎉</span>
+                <div>
+                    <h4 class="font-bold text-sm">العميل مؤهل للحصول على الهدية!</h4>
+                    <p class="text-xs text-amber-600/90 mt-1">لقد وصل العميل للحد المستهدف من النقاط، يرجى تسليمه المكافأة والضغط على زر التصفير أدناه.</p>
+                </div>
+            </div>
+            
             <input type="hidden" id="panel-serial-number">
             <input type="hidden" id="panel-current-points">
             <input type="hidden" id="panel-member-name-hidden">
+            <input type="hidden" id="panel-member-phone">
 
-            <div class="flex flex-col sm:flex-row items-center gap-3">
-                <div class="w-full sm:flex-1">
-                    <label class="block text-xs font-semibold text-gray-500 mb-1">النقاط المراد إضافتها للرصيد</label>
-                    <input type="number" id="add-points-amount" value="1" min="1" class="w-full px-4 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition">
+            <!-- أزرار الإضافة والتصفير -->
+            <div id="controls-section" class="flex flex-col gap-4">
+                <div class="flex flex-col sm:flex-row items-center gap-3">
+                    <div class="w-full sm:flex-1">
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">النقاط المراد إضافتها</label>
+                        <input type="number" id="add-points-amount" value="1" min="1" class="w-full px-4 py-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-4 focus:ring-indigo-100 focus:border-indigo-600 transition">
+                    </div>
+                    <div class="w-full sm:w-auto flex items-end justify-end h-full pt-5">
+                        <button onclick="addPointsToMember()" class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-2xl shadow-lg transition">إضافة نقاط وتحديث البطاقة</button>
+                    </div>
                 </div>
-                <div class="w-full sm:w-auto flex items-end justify-end h-full pt-5">
-                    <button onclick="addPointsToMember()" class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-6 rounded-xl shadow-md transition">
-                        تحديث وإرسال إشعار فوري 🔔
-                    </button>
-                </div>
+
+                <button id="reset-points-btn" onclick="resetMemberPoints()" class="hidden w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-4 rounded-2xl shadow-lg transition flex items-center justify-center gap-2">
+                    <span>تسليم المكافأة وتصفير النقاط للبدء من جديد 🎁</span>
+                </button>
             </div>
         </div>
     </div>
@@ -84,8 +92,23 @@
 
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         let html5QrScanner = null;
+        let targetPoints = 10;
 
-        // دالة بدء تشغيل الكاميرا ومسح الكود
+        const LOGO_URL = "https://bigisnpdoqxmpjwpbncv.supabase.co/storage/v1/object/public/pass-assets/logo.png";
+        const ICON_URL = "https://bigisnpdoqxmpjwpbncv.supabase.co/storage/v1/object/public/pass-assets/icon.png";
+        const STRIP_URL = "https://bigisnpdoqxmpjwpbncv.supabase.co/storage/v1/object/public/pass-assets/strip.png";
+
+        async function loadTargetSettings() {
+            try {
+                const { data } = await supabaseClient.from('app_settings').select('points_target').eq('id', 'config').maybeSingle();
+                if (data) {
+                    targetPoints = data.points_target;
+                }
+            } catch (err) { }
+        }
+
+        window.onload = loadTargetSettings;
+
         function startQRScanner() {
             document.getElementById('qr-reader-container').classList.remove('hidden');
             html5QrScanner = new Html5Qrcode("qr-reader");
@@ -98,7 +121,7 @@
                 },
                 (errorMessage) => { }
             ).catch(err => {
-                alert("لم يتم العثور على كاميرا صالحة: " + err);
+                alert("تعذر تشغيل الكاميرا: " + err);
                 stopQRScanner();
             });
         }
@@ -112,15 +135,14 @@
             }
         }
 
-        // دالة البحث اليدوي برقم الجوال
         function searchMemberByPhone() {
             const phone = document.getElementById('search-phone-input').value;
-            if (!phone) return alert("يرجى إدخال رقم الجوال للبحث مسبقاً");
+            if (!phone) return alert("يرجى إدخال رقم الجوال للبحث");
             fetchMemberDetailsByPhone(phone);
         }
 
-        // استدعاء بيانات العميل من قاعدة البيانات
         async function fetchMemberDetailsByPhone(phone) {
+            await loadTargetSettings(); 
             try {
                 const { data, error } = await supabaseClient
                     .from('loyalty_members')
@@ -136,28 +158,84 @@
                     document.getElementById('panel-member-points').textContent = data.points;
                     document.getElementById('panel-current-points').value = data.points;
                     document.getElementById('panel-serial-number').value = data.serial_number;
+                    document.getElementById('panel-member-phone').value = data.phone_number;
+
+                    if (data.points >= targetPoints) {
+                        document.getElementById('reward-badge').classList.remove('hidden');
+                        document.getElementById('reset-points-btn').classList.remove('hidden');
+                    } else {
+                        document.getElementById('reward-badge').classList.add('hidden');
+                        document.getElementById('reset-points-btn').classList.add('hidden');
+                    }
+
                     document.getElementById('member-info-panel').classList.remove('hidden');
                 } else {
-                    alert("لم يتم العثور على عميل مسجل بهذا الرقم.");
+                    alert("العميل غير مسجل في البرنامج.");
                 }
             } catch (err) {
-                alert("حدث خطأ أثناء الاتصال بقاعدة البيانات: " + err.message);
+                alert("خطأ: " + err.message);
             }
         }
 
-        // إضافة نقاط وإرسال التحديث لـ WalletWallet ليظهر فوراً على شاشة هاتف العميل كإشعار
+        // إرسال كامل مواصفات البطاقة في كل تحديث لضمان ثبات الهيكل وعدم مسح الباركود
+        async function sendPassUpdateToWallet(serialNumber, name, phone, pointsValue, changeMessageText) {
+            const updatePayload = {
+                barcodeValue: phone, 
+                barcodeFormat: "QR", 
+                logoText: "HAJIB SOFT | حاجب سوفت ",
+                organizationName: "HAJIB SOFT ",
+                colorPreset: "blue",
+                color: "#6988ec",
+                logoURL: LOGO_URL,
+                iconURL: ICON_URL,
+                stripURL: STRIP_URL,
+                primaryFields: [
+                    { label: "العميل | custmer", value: name }
+                ],
+                secondaryFields: [
+                    { 
+                        label: "عدد النقاط ", 
+                        value: String(pointsValue),
+                        changeMessage: changeMessageText
+                    },
+                    { 
+                        label: "حالة الهدية ", 
+                        value: pointsValue >= targetPoints ? "مبروك! تستحق الهدية الآن 🎉" : "متبقي القليل فقط"
+                    }
+                ],
+                backFields: [
+                    { label: "جميع الحقوق محفوظة لمنصة حاجب سوفت", value: "hajib soft 2026" },
+                    { label: "Notifications", value: "كيفك", changeMessage: "%@" }
+                ]
+            };
+
+            const response = await fetch(`https://api.walletwallet.dev/api/passes/${serialNumber}`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${WALLET_API_KEY}`
+                },
+                body: JSON.stringify(updatePayload)
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`خطأ من خادم المحافظ السحابي: ${errorText}`);
+            }
+        }
+
         async function addPointsToMember() {
             const serialNumber = document.getElementById('panel-serial-number').value;
             const currentPoints = Number(document.getElementById('panel-current-points').value);
             const pointsToAdd = Number(document.getElementById('add-points-amount').value);
             const name = document.getElementById('panel-member-name-hidden').value;
+            const phone = document.getElementById('panel-member-phone').value;
 
-            if (!serialNumber) return alert("حدث خطأ في تحديد بيانات العميل.");
+            if (!serialNumber) return alert("خطأ في تحديد بيانات العميل.");
 
             const newPoints = currentPoints + pointsToAdd;
 
             try {
-                // 1. تحديث قاعدة البيانات في السوبابيس بالنقاط الجديدة
                 const { error: dbError } = await supabaseClient
                     .from('loyalty_members')
                     .update({ points: newPoints })
@@ -165,44 +243,51 @@
 
                 if (dbError) throw dbError;
 
-                // 2. إرسال التحديث التلقائي لـ WalletWallet ليحدث الكارت في هاتف العميل
-                const updatePayload = {
-                    primaryFields: [
-                        { label: "العميل | customer", value: name }
-                    ],
-                    secondaryFields: [
-                        { 
-                            label: "عدد النقاط", 
-                            value: String(newPoints),
-                            changeMessage: "تم إضافة نقاط جديدة! رصيدك الحالي هو: %@" // الرسالة التي تظهر في إشعار الهاتف
-                        },
-                        { 
-                            label: "حالة الهدية", 
-                            value: newPoints >= 10 ? "مبروك! تستحق الهدية الآن 🎉" : "متبقي القليل فقط" 
-                        }
-                    ]
-                };
+                await sendPassUpdateToWallet(serialNumber, name, phone, newPoints, "تم إضافة نقاط جديدة! رصيدك الحالي هو: %@");
 
-                const response = await fetch(`https://api.walletwallet.dev/api/passes/${serialNumber}`, {
-                    method: "PUT",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Authorization": `Bearer ${WALLET_API_KEY}`
-                    },
-                    body: JSON.stringify(updatePayload)
-                });
-
-                if (!response.ok) {
-                    throw new Error("فشل إرسال التحديث لـ WalletWallet لتحديث شاشة الهاتف.");
-                }
-
-                // تحديث القيم الظاهرة على شاشة الموظف
                 document.getElementById('panel-member-points').textContent = newPoints;
                 document.getElementById('panel-current-points').value = newPoints;
-                alert(`تم تحديث النقاط بنجاح! النقاط الجديدة للعميل هي: ${newPoints} وتم إرسال إشعار فوري لهاتفه.`);
+                
+                if (newPoints >= targetPoints) {
+                    document.getElementById('reward-badge').classList.remove('hidden');
+                    document.getElementById('reset-points-btn').classList.remove('hidden');
+                }
+
+                alert(`تم تحديث النقاط بنجاح! الرصيد الجديد: ${newPoints} وتم إرسال إشعار فوري لهاتف العميل.`);
 
             } catch (err) {
-                alert("خطأ: " + err.message);
+                alert("خطأ أثناء تحديث محفظة العميل: " + err.message);
+            }
+        }
+
+        async function resetMemberPoints() {
+            const serialNumber = document.getElementById('panel-serial-number').value;
+            const name = document.getElementById('panel-member-name-hidden').value;
+            const phone = document.getElementById('panel-member-phone').value;
+
+            if (!serialNumber) return alert("خطأ في تحديد بيانات العميل.");
+
+            if (!confirm("هل أنت متأكد من تسليم الجائزة وتصفير رصيد العميل بالكامل للبدء من جديد؟")) return;
+
+            try {
+                const { error: dbError } = await supabaseClient
+                    .from('loyalty_members')
+                    .update({ points: 0 })
+                    .eq('serial_number', serialNumber);
+
+                if (dbError) throw dbError;
+
+                await sendPassUpdateToWallet(serialNumber, name, phone, 0, "تهانينا! تم تسليم مكافأتك بنجاح وبدء رصيد نقاط جديد من جديد 🎁");
+
+                document.getElementById('panel-member-points').textContent = "0";
+                document.getElementById('panel-current-points').value = 0;
+                document.getElementById('reward-badge').classList.add('hidden');
+                document.getElementById('reset-points-btn').classList.add('hidden');
+
+                alert("تم تصفير الرصيد وإرسال إشعار فوري لهاتف العميل وبدء دورة ولاء جديدة بنجاح!");
+
+            } catch (err) {
+                alert("خطأ أثناء تصفير النقاط: " + err.message);
             }
         }
     </script>

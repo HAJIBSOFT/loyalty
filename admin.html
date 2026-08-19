@@ -3,59 +3,122 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>حاجب سوفت | لوحة تحكم الإدارة</title>
-    <!-- استدعاء Tailwind CSS للتصميم -->
+    <title>حاجب سوفت | لوحة تحكم الإدارة الشاملة</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- استدعاء مكتبة Supabase الرسمية -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Cairo:wght=300;400;600;700&display=swap');
         body { font-family: 'Cairo', sans-serif; }
     </style>
 </head>
-<body class="bg-gray-50 min-h-screen p-4 sm:p-8">
+<body class="bg-slate-50 min-h-screen p-4 sm:p-8">
 
-    <div class="max-w-4xl mx-auto bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-        <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6 border-b pb-4">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-lg">أ</div>
-                <h1 class="text-xl font-bold text-gray-900">إدارة عملاء حاجب سوفت</h1>
-            </div>
-            <button onclick="fetchMembersList()" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition">
-                تحديث القائمة الآن 🔄
-            </button>
-        </div>
+    <div class="max-w-4xl mx-auto space-y-6">
         
-        <!-- جدول عرض بيانات جميع العملاء المسجلين ونقاطهم -->
-        <div class="overflow-x-auto rounded-xl border border-gray-100">
-            <table class="min-w-full divide-y divide-gray-100 text-right">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-6 py-3 text-xs font-bold text-gray-500 uppercase">اسم العميل</th>
-                        <th class="px-6 py-3 text-xs font-bold text-gray-500 uppercase">رقم الجوال</th>
-                        <th class="px-6 py-3 text-xs font-bold text-gray-500 uppercase">النقاط</th>
-                        <th class="px-6 py-3 text-xs font-bold text-gray-500 uppercase">رابط البطاقة للتحميل</th>
-                    </tr>
-                </thead>
-                <tbody id="members-table-body" class="divide-y divide-gray-100 text-sm">
-                    <tr>
-                        <td colspan="4" class="px-6 py-8 text-center text-gray-400">جاري تحميل قائمة بيانات العملاء...</td>
-                    </tr>
-                </tbody>
-            </table>
+        <!-- القسم العلوي والتحكم بالمستهدف (Target Settings) -->
+        <div class="bg-white rounded-3xl shadow-xl shadow-slate-100 border border-slate-100 p-6 flex flex-col md:flex-row items-center justify-between gap-6">
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-2xl bg-indigo-600 flex items-center justify-center text-white font-extrabold text-xl shadow-md">أ</div>
+                <div>
+                    <h1 class="text-xl font-bold text-slate-900">إدارة عملاء حاجب سوفت</h1>
+                    <p class="text-xs text-slate-400 mt-1">تعديل الإعدادات والتحكم بالنقاط وإرسال الإشعارات</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-3 bg-slate-50 p-2.5 rounded-2xl border border-slate-100 w-full md:w-auto">
+                <div class="text-right">
+                    <span class="text-xs font-semibold text-slate-500 block mb-1">المستهدف من النقاط للهدية</span>
+                    <input type="number" id="points-target-input" min="1" class="w-24 px-3 py-1.5 rounded-xl border border-slate-200 text-center font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-100">
+                </div>
+                <button onclick="updateTargetSettings()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold py-3.5 px-4 rounded-xl transition-all">تحديث الهدف</button>
+            </div>
+        </div>
+
+        <!-- أداة إرسال إشعار جماعي لجميع الهواتف بضغطة زر واحدة (Broadcast Notification) -->
+        <div class="bg-white rounded-3xl shadow-xl shadow-slate-100 border border-slate-100 p-6">
+            <h3 class="text-lg font-bold text-slate-900 mb-2">إرسال إشعار جماعي لجميع هواتف العملاء 📣</h3>
+            <p class="text-xs text-slate-400 mb-4">اكتب نص الرسالة التي ترغب في إرسالها لجميع حاملي البطاقات، وستظهر فوراً كإشعار على شاشات هواتفهم.</p>
+            
+            <div class="flex flex-col sm:flex-row gap-3">
+                <input type="text" id="broadcast-message-input" placeholder="مثال: خصم خاص 20% لحاملي بطاقتنا اليوم فقط!" class="flex-1 px-4 py-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-4 focus:ring-indigo-100 transition text-sm">
+                <button onclick="sendBroadcastNotification()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-6 rounded-2xl transition-all shadow-lg flex items-center justify-center gap-2">
+                    <span>إرسال الإشعار للجميع</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- جدول العملاء والبطاقات -->
+        <div class="bg-white rounded-3xl shadow-xl shadow-slate-100 border border-slate-100 p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-lg font-bold text-slate-900">قائمة الأعضاء والبطاقات النشطة</h3>
+                <button onclick="fetchMembersList()" class="bg-slate-50 hover:bg-slate-100 text-slate-700 px-4 py-2 rounded-xl text-xs font-semibold transition border">تحديث القائمة</button>
+            </div>
+            
+            <div class="overflow-x-auto rounded-2xl border border-slate-100">
+                <table class="min-w-full divide-y divide-slate-100 text-right">
+                    <thead class="bg-slate-50">
+                        <tr>
+                            <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">اسم العميل</th>
+                            <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">رقم الجوال</th>
+                            <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">النقاط</th>
+                            <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">رابط البطاقة</th>
+                        </tr>
+                    </thead>
+                    <tbody id="members-table-body" class="divide-y divide-slate-100 text-sm">
+                        <tr>
+                            <td colspan="4" class="px-6 py-8 text-center text-slate-400">جاري تحميل البيانات...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 
     <script>
         const SUPABASE_URL = "https://bigisnpdoqxmpjwpbncv.supabase.co"; 
         const SUPABASE_ANON_KEY = "sb_publishable_6ZtAL8lRYdreWg4Xhn6zLA_7-PwGvPJ"; 
+        const WALLET_API_KEY = "ww_live_d725637056c71ad72de934242e861523";
 
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        // جلب قائمة الأعضاء بالكامل من قاعدة البيانات وعرضها في الجدول
+        let targetPoints = 10;
+
+        const LOGO_URL = "https://bigisnpdoqxmpjwpbncv.supabase.co/storage/v1/object/public/pass-assets/logo.png";
+        const ICON_URL = "https://bigisnpdoqxmpjwpbncv.supabase.co/storage/v1/object/public/pass-assets/icon.png";
+        const STRIP_URL = "https://bigisnpdoqxmpjwpbncv.supabase.co/storage/v1/object/public/pass-assets/strip.png";
+
+        async function loadTargetSettings() {
+            try {
+                const { data } = await supabaseClient.from('app_settings').select('points_target').eq('id', 'config').maybeSingle();
+                if (data) {
+                    targetPoints = data.points_target;
+                    document.getElementById('points-target-input').value = targetPoints;
+                }
+            } catch (err) { }
+        }
+
+        async function updateTargetSettings() {
+            const newTarget = Number(document.getElementById('points-target-input').value);
+            if (!newTarget || newTarget < 1) return alert("يرجى إدخال رقم مستهدف صحيح.");
+
+            try {
+                const { error } = await supabaseClient
+                    .from('app_settings')
+                    .update({ points_target: newTarget })
+                    .eq('id', 'config');
+
+                if (error) throw error;
+                targetPoints = newTarget;
+                alert("تم تحديث مستهدف النقاط للعملاء بنجاح ليكون: " + newTarget);
+                fetchMembersList();
+            } catch (err) {
+                alert("خطأ أثناء التحديث: " + err.message);
+            }
+        }
+
         async function fetchMembersList() {
             const tbody = document.getElementById('members-table-body');
-            tbody.innerHTML = `<tr><td colspan="4" class="px-6 py-8 text-center text-gray-400">جاري تحديث البيانات...</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="4" class="px-6 py-8 text-center text-slate-400">جاري تحديث البيانات...</td></tr>`;
 
             try {
                 const { data, error } = await supabaseClient
@@ -69,27 +132,95 @@
                     tbody.innerHTML = "";
                     data.forEach(member => {
                         const row = `
-                            <tr class="hover:bg-gray-50/50 transition">
-                                <td class="px-6 py-4 font-semibold text-gray-900">${member.name}</td>
-                                <td class="px-6 py-4 text-gray-500">${member.phone_number}</td>
-                                <td class="px-6 py-4 font-bold text-blue-600">${member.points}</td>
+                            <tr class="hover:bg-slate-50/50 transition">
+                                <td class="px-6 py-4 font-semibold text-slate-900">${member.name}</td>
+                                <td class="px-6 py-4 text-slate-500">${member.phone_number}</td>
+                                <td class="px-6 py-4 font-bold text-indigo-600">${member.points}</td>
                                 <td class="px-6 py-4">
-                                    <a href="${member.share_url}" target="_blank" class="text-blue-600 hover:text-blue-800 underline font-medium">رابط تحميل البطاقة 📱</a>
+                                    <a href="${member.share_url}" target="_blank" class="text-indigo-600 hover:text-indigo-800 underline font-medium">عرض البطاقة 📱</a>
                                 </td>
                             </tr>
                         `;
                         tbody.innerHTML += row;
                     });
                 } else {
-                    tbody.innerHTML = `<tr><td colspan="4" class="px-6 py-8 text-center text-gray-400">لا يوجد عملاء مسجلين في برنامج الولاء حالياً.</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="4" class="px-6 py-8 text-center text-slate-400">لا يوجد عملاء مسجلين حالياً.</td></tr>`;
                 }
             } catch (err) {
-                tbody.innerHTML = `<tr><td colspan="4" class="px-6 py-8 text-center text-red-500">حدث خطأ أثناء تحميل البيانات من قاعدة البيانات.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="4" class="px-6 py-8 text-center text-red-500">حدث خطأ أثناء تحميل البيانات.</td></tr>`;
             }
         }
 
-        // تحميل القائمة تلقائياً عند فتح الصفحة لأول مرة
-        window.onload = fetchMembersList;
+        async function sendBroadcastNotification() {
+            const message = document.getElementById('broadcast-message-input').value;
+            if (!message) return alert("يرجى كتابة نص الإشعار أولاً");
+
+            if (!confirm("هل أنت متأكد من رغبتك في إرسال هذا الإشعار الجماعي لجميع العملاء؟")) return;
+
+            try {
+                const { data: members, error } = await supabaseClient.from('loyalty_members').select('*');
+                if (error) throw error;
+
+                if (!members || members.length === 0) return alert("لا يوجد عملاء مسجلين لإرسال إشعارات لهم.");
+
+                alert("جاري البدء في إرسال الإشعارات لجميع هواتف العملاء بالخلفية...");
+
+                for (let member of members) {
+                    const updatePayload = {
+                        barcodeValue: member.phone_number,
+                        barcodeFormat: "QR",
+                        logoText: "HAJIB SOFT | حاجب سوفت ",
+                        organizationName: "HAJIB SOFT ",
+                        colorPreset: "blue",
+                        color: "#6988ec",
+                        logoURL: LOGO_URL,
+                        iconURL: ICON_URL,
+                        stripURL: STRIP_URL,
+                        primaryFields: [
+                            { label: "العميل | custmer", value: member.name }
+                        ],
+                        secondaryFields: [
+                            { 
+                                label: "عدد النقاط ", 
+                                value: String(member.points)
+                            },
+                            { 
+                                label: "حالة الهدية ", 
+                                value: member.points >= targetPoints ? "مبروك! تستحق الهدية الآن 🎉" : "متبقي القليل فقط"
+                            }
+                        ],
+                        backFields: [
+                            { label: "جميع الحقوق محفوظة لمنصة حاجب سوفت", value: "hajib soft 2026" },
+                            { 
+                                label: "Notifications", 
+                                value: message, // نص الإشعار العام
+                                changeMessage: "إشعار جديد: %@" // إرسال الإشعار التنبيهي للهاتف
+                            }
+                        ]
+                    };
+
+                    await fetch(`https://api.walletwallet.dev/api/passes/${member.serial_number}`, {
+                        method: "PUT",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "Authorization": `Bearer ${WALLET_API_KEY}`
+                        },
+                        body: JSON.stringify(updatePayload)
+                    });
+                }
+
+                alert("تم إرسال الإشعار الجماعي لجميع الهواتف بنجاح!");
+                document.getElementById('broadcast-message-input').value = "";
+
+            } catch (err) {
+                alert("خطأ أثناء البث الجماعي: " + err.message);
+            }
+        }
+
+        window.onload = function() {
+            loadTargetSettings();
+            fetchMembersList();
+        }
     </script>
 </body>
 </html>
