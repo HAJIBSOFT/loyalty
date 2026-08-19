@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>حاجب سوفت | لوحة تحكم الإدارة</title>
+    <!-- استدعاء Tailwind CSS للتصميم -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- استدعاء مكتبة Supabase الرسمية -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght=300;400;600;700&display=swap');
+        body { font-family: 'Cairo', sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen p-4 sm:p-8">
+
+    <div class="max-w-4xl mx-auto bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6 border-b pb-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-lg">أ</div>
+                <h1 class="text-xl font-bold text-gray-900">إدارة عملاء حاجب سوفت</h1>
+            </div>
+            <button onclick="fetchMembersList()" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition">
+                تحديث القائمة الآن 🔄
+            </button>
+        </div>
+        
+        <!-- جدول عرض بيانات جميع العملاء المسجلين ونقاطهم -->
+        <div class="overflow-x-auto rounded-xl border border-gray-100">
+            <table class="min-w-full divide-y divide-gray-100 text-right">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-xs font-bold text-gray-500 uppercase">اسم العميل</th>
+                        <th class="px-6 py-3 text-xs font-bold text-gray-500 uppercase">رقم الجوال</th>
+                        <th class="px-6 py-3 text-xs font-bold text-gray-500 uppercase">النقاط</th>
+                        <th class="px-6 py-3 text-xs font-bold text-gray-500 uppercase">رابط البطاقة للتحميل</th>
+                    </tr>
+                </thead>
+                <tbody id="members-table-body" class="divide-y divide-gray-100 text-sm">
+                    <tr>
+                        <td colspan="4" class="px-6 py-8 text-center text-gray-400">جاري تحميل قائمة بيانات العملاء...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = "https://bigisnpdoqxmpjwpbncv.supabase.co"; 
+        const SUPABASE_ANON_KEY = "sb_publishable_6ZtAL8lRYdreWg4Xhn6zLA_7-PwGvPJ"; 
+
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // جلب قائمة الأعضاء بالكامل من قاعدة البيانات وعرضها في الجدول
+        async function fetchMembersList() {
+            const tbody = document.getElementById('members-table-body');
+            tbody.innerHTML = `<tr><td colspan="4" class="px-6 py-8 text-center text-gray-400">جاري تحديث البيانات...</td></tr>`;
+
+            try {
+                const { data, error } = await supabaseClient
+                    .from('loyalty_members')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                if (data && data.length > 0) {
+                    tbody.innerHTML = "";
+                    data.forEach(member => {
+                        const row = `
+                            <tr class="hover:bg-gray-50/50 transition">
+                                <td class="px-6 py-4 font-semibold text-gray-900">${member.name}</td>
+                                <td class="px-6 py-4 text-gray-500">${member.phone_number}</td>
+                                <td class="px-6 py-4 font-bold text-blue-600">${member.points}</td>
+                                <td class="px-6 py-4">
+                                    <a href="${member.share_url}" target="_blank" class="text-blue-600 hover:text-blue-800 underline font-medium">رابط تحميل البطاقة 📱</a>
+                                </td>
+                            </tr>
+                        `;
+                        tbody.innerHTML += row;
+                    });
+                } else {
+                    tbody.innerHTML = `<tr><td colspan="4" class="px-6 py-8 text-center text-gray-400">لا يوجد عملاء مسجلين في برنامج الولاء حالياً.</td></tr>`;
+                }
+            } catch (err) {
+                tbody.innerHTML = `<tr><td colspan="4" class="px-6 py-8 text-center text-red-500">حدث خطأ أثناء تحميل البيانات من قاعدة البيانات.</td></tr>`;
+            }
+        }
+
+        // تحميل القائمة تلقائياً عند فتح الصفحة لأول مرة
+        window.onload = fetchMembersList;
+    </script>
+</body>
+</html>
